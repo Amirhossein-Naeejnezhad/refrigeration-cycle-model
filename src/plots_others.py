@@ -86,40 +86,7 @@ def plot_basic_performance(df):
 
 
 # =========================
-# 2) Polynomial consistency plots
-# =========================
-def plot_polynomial_consistency(df):
-    """
-    Compare thermodynamic reconstruction vs polynomial outputs.
-    """
-
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    ax.plot(df["Water in [°C]"], df["Qe [kW]"], marker="o", label="Thermo reconstructed Qe")
-    ax.plot(df["Water in [°C]"], df["Qe_poly [kW]"], marker="s", label="Polynomial Qe")
-
-    ax.set_xlabel("Condenser water inlet temperature [°C]")
-    ax.set_ylabel("Cooling capacity [kW]")
-    ax.set_title("Thermodynamic reconstruction vs polynomial model")
-    ax.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-    fig, ax = plt.subplots(figsize=(7, 4.5))
-    ax.plot(df["Water in [°C]"], df["Pc [kW]"], marker="o", label="Thermo reconstructed Pc")
-    ax.plot(df["Water in [°C]"], df["Pc_poly [kW]"], marker="s", label="Polynomial Pc")
-
-    ax.set_xlabel("Condenser water inlet temperature [°C]")
-    ax.set_ylabel("Compressor power [kW]")
-    ax.set_title("Compressor power: reconstructed vs polynomial model")
-    ax.legend()
-
-    plt.tight_layout()
-    plt.show()
-
-
-# =========================
-# 3) High pressure ratio exploration
+# 2) High pressure ratio exploration
 # =========================
 def plot_high_pressure_ratio(
     compressor_function,
