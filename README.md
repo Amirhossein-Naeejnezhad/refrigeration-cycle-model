@@ -36,10 +36,6 @@ refrigeration-cycle-model/
 │   ├── utils.py
 │   └── main.py
 │
-├── results/
-│   ├── figures/
-│   └── tables/
-│
 ├── report/
 │   └── UNIPD_Ref_HP_Project.pdf
 │
