@@ -90,19 +90,24 @@ def plot_ph_diagram(df):
 
         color = colors[idx_case % len(colors)]
 
+        # --- Saturation points ---
         h_sat_vap = PropsSI("H", "P", st[1]["P"], "Q", 1, REF)
         h_sat_liq = PropsSI("H", "P", st[3]["P"], "Q", 0, REF)
 
-        # Build segments
-        h12, P12 = build_curve_compression(st)
-        h23a, P23a = build_curve_constP(st[2]["P"], st[2]["h"], h_sat_liq)
-        h23b, P23b = build_curve_constP(st[3]["P"], h_sat_liq, st[3]["h"])
-        h34, P34 = build_curve_constH(st[3]["h"], st[3]["P"], st[4]["P"])
-        h41a, P41a = build_curve_constP(st[4]["P"], st[4]["h"], h_sat_vap)
-        h41b, P41b = build_curve_constP(st[1]["P"], h_sat_vap, st[1]["h"])
+        # --- Segments (IDENTICAL TO YOUR CODE) ---
+        h12, P12 = build_curve_compression(st, ref=REF)
+
+        h23a, P23a = build_curve_constP(st[2]["P"], st[2]["h"], h_sat_liq, ref=REF)
+        h23b, P23b = build_curve_constP(st[3]["P"], h_sat_liq, st[3]["h"], ref=REF)
+
+        h34, P34 = build_curve_constH(st[3]["h"], st[3]["P"], st[4]["P"], ref=REF)
+
+        h41a, P41a = build_curve_constP(st[4]["P"], st[4]["h"], h_sat_vap, ref=REF)
+        h41b, P41b = build_curve_constP(st[1]["P"], h_sat_vap, st[1]["h"], ref=REF)
 
         label = f"Cycle, water in = {df.iloc[idx]['Water in [°C]']:.0f}°C"
 
+        # --- Plot ---
         ax.semilogy(h12,  P12,  color=color, label=label)
         ax.semilogy(h23a, P23a, color=color)
         ax.semilogy(h23b, P23b, color=color, linestyle="--")
@@ -110,20 +115,39 @@ def plot_ph_diagram(df):
         ax.semilogy(h41a, P41a, color=color)
         ax.semilogy(h41b, P41b, color=color, linestyle="--")
 
-        # Points
+        # --- Real points ---
         for i in [1, 2, 3, 4]:
             h_i = st[i]["h"] / 1000.0
             P_i = st[i]["P"] / 1e5
             ax.semilogy(h_i, P_i, marker="o", color=color)
             ax.text(h_i + 2, P_i * 1.05, str(i), fontsize=9)
 
+        # --- Saturation reference points (CRUCIAL) ---
+        h_1sat = h_sat_vap / 1000.0
+        P_1sat = st[1]["P"] / 1e5
+        h_3sat = h_sat_liq / 1000.0
+        P_3sat = st[3]["P"] / 1e5
+
+        ax.semilogy(h_1sat, P_1sat, marker="x", color=color)
+        ax.semilogy(h_3sat, P_3sat, marker="x", color=color)
+
+        ax.text(h_1sat + 2, P_1sat * 1.05, "1s", fontsize=9)
+        ax.text(h_3sat + 2, P_3sat * 1.05, "3s", fontsize=9)
+
+    # --- Smart zoom (CRUCIAL DIFFERENCE) ---
+    all_h = [st[i]["h"] / 1000.0 for i in [1, 2, 3, 4]]
+    all_P = [st[i]["P"] / 1e5    for i in [1, 2, 3, 4]]
+
+    ax.set_xlim(min(all_h) - 50, max(all_h) + 50)
+    ax.set_ylim(min(all_P) * 0.7, max(all_P) * 1.3)
+
     ax.set_xlabel("Specific enthalpy [kJ/kg]")
     ax.set_ylabel("Pressure [bar]")
-    ax.set_title(f"P-h diagram ({REF})")
+    ax.set_title(f"P-h diagram with visible superheating & subcooling ({REF})")
     ax.legend()
+
     plt.tight_layout()
     plt.show()
-
 
 # =========================
 # -------- T-s DIAGRAM ----
@@ -215,12 +239,15 @@ def plot_ts_diagram(df):
         h_sat_vap = PropsSI("H", "P", st[1]["P"], "Q", 1, REF)
         h_sat_liq = PropsSI("H", "P", st[3]["P"], "Q", 0, REF)
 
-        s12, T12 = build_process_curve_compression(st)
-        s23a, T23a = build_process_curve_constP_h(st[2]["P"], st[2]["h"], h_sat_liq)
-        s23b, T23b = build_process_curve_constP_h(st[3]["P"], h_sat_liq, st[3]["h"])
-        s34, T34 = build_process_curve_constH_P(st[3]["h"], st[3]["P"], st[4]["P"])
-        s41a, T41a = build_process_curve_constP_h(st[4]["P"], st[4]["h"], h_sat_vap)
-        s41b, T41b = build_process_curve_constP_h(st[1]["P"], h_sat_vap, st[1]["h"])
+        s12, T12 = build_process_curve_compression(st, ref=REF, n=100)
+
+        s23a, T23a = build_process_curve_constP_h(st[2]["P"], st[2]["h"], h_sat_liq, ref=REF, n=100)
+        s23b, T23b = build_process_curve_constP_h(st[3]["P"], h_sat_liq, st[3]["h"], ref=REF, n=40)
+
+        s34, T34 = build_process_curve_constH_P(st[3]["h"], st[3]["P"], st[4]["P"], ref=REF, n=100)
+
+        s41a, T41a = build_process_curve_constP_h(st[4]["P"], st[4]["h"], h_sat_vap, ref=REF, n=100)
+        s41b, T41b = build_process_curve_constP_h(st[1]["P"], h_sat_vap, st[1]["h"], ref=REF, n=40)
 
         label = f"Cycle, water in = {df.iloc[idx]['Water in [°C]']:.0f}°C"
 
@@ -232,14 +259,35 @@ def plot_ts_diagram(df):
         ax.plot(s41b, T41b, color=color, linestyle="--")
 
         for i in [1, 2, 3, 4]:
-            s_i = st[i]["s"] / 1000.0 if st[i]["s"] is not None else np.nan
+            s_i = st[i]["s"] / 1000.0 if st[i]["s"] is not None else float("nan")
             T_i = k_to_c(st[i]["T"])
             ax.plot(s_i, T_i, marker="o", color=color)
             ax.text(s_i + 0.01, T_i + 0.8, str(i), fontsize=9)
 
+        # --- Saturation points (CRUCIAL) ---
+        s_1sat = PropsSI("S", "P", st[1]["P"], "Q", 1, REF) / 1000.0
+        T_1sat = PropsSI("T", "P", st[1]["P"], "Q", 1, REF) - 273.15
+
+        s_3sat = PropsSI("S", "P", st[3]["P"], "Q", 0, REF) / 1000.0
+        T_3sat = PropsSI("T", "P", st[3]["P"], "Q", 0, REF) - 273.15
+
+        ax.plot(s_1sat, T_1sat, marker="x", color=color)
+        ax.plot(s_3sat, T_3sat, marker="x", color=color)
+
+        ax.text(s_1sat + 0.01, T_1sat, "1s", fontsize=9)
+        ax.text(s_3sat + 0.01, T_3sat, "3s", fontsize=9)
+
+    # --- Smart zoom ---
+    all_s = [st[i]["s"] / 1000.0 for i in [1, 2, 3, 4] if st[i]["s"] is not None]
+    all_T = [k_to_c(st[i]["T"])  for i in [1, 2, 3, 4]]
+
+    ax.set_xlim(min(all_s) - 0.2, max(all_s) + 0.2)
+    ax.set_ylim(min(all_T) - 15,  max(all_T) + 15)
+
     ax.set_xlabel("Specific entropy [kJ/kg-K]")
     ax.set_ylabel("Temperature [°C]")
-    ax.set_title(f"T-s diagram ({REF})")
+    ax.set_title(f"T-s diagram with visible superheating & subcooling ({REF})")
     ax.legend()
+
     plt.tight_layout()
     plt.show()
