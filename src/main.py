@@ -14,7 +14,6 @@ from src.heat_exchanger import compute_KA_values
 from src.solver import solve_operating_point
 from src.plots_others import (
     plot_basic_performance,
-    plot_polynomial_consistency,
     plot_high_pressure_ratio,
 )
 from src.plots_ph_ts import plot_ph_diagram, plot_ts_diagram
@@ -194,7 +193,6 @@ def run_project():
     print(df_states)
 
     plot_basic_performance(df)
-    plot_polynomial_consistency(df)
     plot_ph_diagram(df)
     plot_ts_diagram(df)
 
