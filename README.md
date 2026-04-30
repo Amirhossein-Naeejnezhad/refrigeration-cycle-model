@@ -1,96 +1,56 @@
 # Refrigeration Cycle Model
 ### Refrigeration and Heat Pump Technology — Project Work
-**University of Padova — Refrigeration Engineering**
+**University of Padova — Energy Engineering - May 2026 - Prof. Azzolin - Prof. Bortolin**
 
 ---
 
-## What this repository does
+## What this does
 
-This tool models a **vapour-compression refrigeration cycle** and studies how
-**cooling capacity (Qe)** and **EER** change as the heat-sink temperature varies.
+Models a vapour-compression refrigeration cycle and shows how **cooling capacity (Qe)** and **EER** change with heat-sink temperature — the core objective of the course project work.
 
-It is the base implementation for the course project work. The `universal-model`
-branch supports **any student project** from the assignment list — you only need
-to edit one file to run your own project.
-
-The model uses:
-- A **10-coefficient manufacturer polynomial** (Bitzer / Copeland / Frascold)
-  for compressor performance (Qe, Pc, ṁ)
-- **CoolProp** for all thermodynamic state calculations
-- **LMTD-based heat exchanger matching** with iterative convergence
-- Supports **air or water/brine** on both evaporator and condenser sides
+Uses a **10-coefficient Bitzer polynomial** for the compressor, **CoolProp** for thermodynamic states, and **LMTD-based HX matching** with iterative convergence. Supports air or water/brine on both sides.
 
 ---
 
-## Quickstart (Google Colab or Jupyter)
+## Running your own project — step by step
 
-```python
-# 1. Clone the universal-model branch
-!git clone --branch universal-model \
-    https://github.com/Amirhossein-Naeejnezhad/refrigeration-cycle-model.git
-%cd refrigeration-cycle-model
+### 1. Fork this repository
 
-# 2. Install dependencies
-!pip install -r requirements.txt
+Click **Fork** on GitHub (top-right). All your edits go into your own fork.
 
-# 3. Run
-from src.main import run_project
-df, df_print, df_states = run_project()
-```
-
-Or open and run **`run_project.ipynb`** directly.
+Then open your fork in Google Colab via `run_project.ipynb`
 
 ---
 
-## How to run your own project
+### 2. Choose your refrigerant and compressor
 
-You need to edit **two files only**.
+Go to **[bitzer.de/websoftware](https://www.bitzer.de/websoftware)** and set:
 
-### Step 1 — `src/config.py`
+- **Refrigerant** — choose based on your application (R32, R410A, R134a, R290…)
+- **Cooling capacity** — your nominal Qe from the assignment
+- **Evaporating SST** ≈ secondary fluid outlet − 7 K
+- **Condensing SDT** ≈ heat-sink inlet + 10 K (air) or + 5 K (water)
+- **Subcooling / Suction gas temperature** 
 
-Find the `ACTIVE PROJECT SETTINGS` block. Comment out the current active
-project and fill in your own values:
+Select a compressor model and go to the **Polynomial** tab. Export the coefficients using the **Excel icon** next to the compressor name.
 
-```python
-STUDENT_NAME        = "Your Name"
-APPLICATION         = "your application"
+---
 
-REF                 = "R410A"         # refrigerant
-Q_NOMINAL_TARGET    = 20.0e3          # [W]
+### 3. Edit `src/config.py`
 
-EVAP_SECONDARY      = "air"           # "air" | "water" | "brine"
-T_AIR_IN_C          = 12.0            # evaporator air inlet  [°C]
-T_AIR_OUT_C         = 7.0             # evaporator air outlet [°C]
+Open the file. You will see the `ACTIVE PROJECT SETTINGS` block with the current active project. 
 
-COND_SECONDARY      = "water"         # "air" | "water"
-T_WATER_RISE_K      = 5.0             # condenser water ΔT   [K]
+**First — comment out the active block**.
 
-COMPRESSOR_MODEL    = "YOUR_MODEL"
-VDOT_SWEPT_50HZ_M3_H = 0.0           # from datasheet
-MAX_PRESSURE_LP_BAR  = 0.0
-MAX_PRESSURE_HP_BAR  = 0.0
-MAX_POWER_INPUT_KW   = 0.0
+**Then — add your own block** below it and edit all the values in the file according your nominal condition
 
-nominal_map_point = {
-    "Tevap_C": 0.0, "Tcond_C": 35.0,
-    "Qe_kW": 0.0,   "Pc_kW": 0.0,
-    "mdot_kg_h": 0.0, "discharge_T_C": 0.0, "COP": 0.0,
-}
-```
 
-For **water/brine evaporators** (e.g. water chillers) add instead:
+---
 
-```python
-EVAP_SECONDARY  = "water"
-T_BRINE_IN_C    = 18.0
-T_BRINE_OUT_C   = 12.0
-```
+### 4. Edit `src/compressor.py`
 
-### Step 2 — `src/compressor.py`
-
-Add one entry to `COMPRESSOR_REGISTRY` using your 10 polynomial coefficients
-from the manufacturer selection software (Bitzer websoftware, Copeland Select,
-or Frascold Select):
+Open the file and find `COMPRESSOR_REGISTRY`. Add a new entry for your compressor.
+The key must **exactly match** `COMPRESSOR_MODEL` in `config.py`:
 
 ```python
 "YOUR_MODEL": {
@@ -98,22 +58,27 @@ or Frascold Select):
         "manufacturer": "Bitzer",
         "series":        "ORBIT+",
         "refrigerant":   "R410A",
+        "type":          "Scroll, Single Compressor",
         "student":       "Your Name",
     },
-    "Q": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # [W]
-    "P": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # [W]
-    "M": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # [kg/h]
+    "Q": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # cooling capacity [W]
+    "P": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # compressor power [W]
+    "M": [C0, C1, C2, C3, C4, C5, C6, C7, C8, C9],   # mass flow rate [kg/h]
 },
 ```
 
-The coefficient order follows the standard ARI-540 form:
-
+Coefficient order (ARI-540 / Bitzer standard):
 ```
 C0 + C1·To + C2·Tc + C3·To² + C4·To·Tc + C5·Tc²
    + C6·To³ + C7·To²·Tc + C8·To·Tc² + C9·Tc³
 ```
 
-where `To` = evaporating SST [°C] and `Tc` = condensing SDT [°C].
+---
+
+### 5. Run
+
+Open `run_project.ipynb` in Colab and run all cells in order.
+Cell 3 confirms which project is active before anything runs — check it before Cell 4.
 
 ---
 
@@ -127,16 +92,16 @@ refrigeration-cycle-model/
 ├── README.md
 │
 ├── src/
-│   ├── config.py           ← EDIT THIS for your project
-│   ├── compressor.py       ← ADD YOUR compressor coefficients here
+│   ├── __init__.py
+│   ├── config.py           ← EDIT THIS — your project settings
+│   ├── compressor.py       ← EDIT THIS — your compressor coefficients
 │   ├── thermodynamics.py   ← CoolProp cycle reconstruction
-│   ├── heat_exchanger.py   ← LMTD KA calculation + temperature solvers
+│   ├── heat_exchanger.py   ← LMTD KA design + temperature solvers
 │   ├── solver.py           ← iterative operating-point solver
 │   ├── plots_ph_ts.py      ← P-h and T-s diagrams
 │   ├── plots_others.py     ← EER, Qe, Pc, efficiency plots
 │   ├── utils.py            ← unit conversions, LMTD, helpers
-│   ├── main.py             ← orchestrates everything
-│   └── __init__.py
+│   └── main.py             ← orchestrates everything
 │
 └── report/
     └── UNIPD_Ref_HP_Project.pdf
@@ -145,8 +110,6 @@ refrigeration-cycle-model/
 ---
 
 ## Outputs
-
-For each heat-sink temperature step the model reports:
 
 | Column | Description |
 |---|---|
@@ -159,33 +122,7 @@ For each heat-sink temperature step the model reports:
 | `eta_vol [-]` | Volumetric efficiency (derived) |
 | `PR [-]` | Pressure ratio |
 
-Results are exported to a CSV named automatically from your config:
-`refrigeration_results_<REF>_<LastName>.csv`
-
----
-
-The solver iterates `Tevap` and `Tcond` until the heat exchanger LMTD
-equations and the compressor polynomial are mutually consistent:
-
-```
-Q = KA · ΔTLM
-```
-
-`eta_is` and `eta_vol` are **derived** from the polynomial output combined
-with CoolProp states — no algebraic correlations are imposed.
-
----
-
-## Assignment reference
-
-| Student | Application | Qe [kW] | Evap side | Cond side |
-|---|---|---|---|---|
-| Naeejnezhad Amirhossein | Cooling data center | 50 | air at 12 °C | water |
-| Capovilla Daniele | Water chiller | 75 | water 12→7 °C | water |
-| LORENZIN FILIPPO | Process chiller | 120 | water 16→11 °C | air |
-| BEDA EMMA | Water chiller | 20 | water 18→12 °C | air |
-| FONTANIVE GIOVANNI | Cooling data center | 100 | air at 15 °C | water |
-| *(see assignments PDF for full list)* | | | | |
+Results are exported automatically to `refrigeration_results_<REF>_<LastName>.csv`.
 
 ---
 
@@ -193,8 +130,8 @@ with CoolProp states — no algebraic correlations are imposed.
 
 | Branch | Description |
 |---|---|
-| `main` | Original implementation — Amirhossein Naeejnezhad's project (R32, data center, 50 kW) |
-| `universal-model` | This branch — supports any student project via config |
+| `main` | Original — Amirhossein Naeejnezhad's project only (R32, data center, 50 kW) |
+| `universal-model` | This branch — any student project via config |
 
 ---
 
