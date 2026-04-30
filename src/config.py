@@ -52,44 +52,90 @@ Sections that usually stay the same:
 # Cond side   : water
 # Compressor  : Bitzer GSU60182VL_4 (ORBIT+, R32)
 # ------------------------------------------------------------
-STUDENT_NAME        = "Amirhossein Naeejnezhad"
-APPLICATION         = "Cooling data center"
+# STUDENT_NAME        = "Amirhossein Naeejnezhad"
+# APPLICATION         = "Cooling data center"
 
-REF                 = "R32"
-Q_NOMINAL_TARGET    = 50.0e3          # [W]
+# REF                 = "R32"
+# Q_NOMINAL_TARGET    = 50.0e3          # [W]
 
-# Evaporator — air side
-EVAP_SECONDARY      = "air"           # "air" or "water" or "brine"
-T_AIR_IN_C          = 12.0            # [°C]  secondary fluid inlet
-T_AIR_OUT_C         = 8.0             # [°C]  secondary fluid outlet
+# # Evaporator — air side
+# EVAP_SECONDARY      = "air"           # "air" or "water" or "brine"
+# T_AIR_IN_C          = 12.0            # [°C]  secondary fluid inlet
+# T_AIR_OUT_C         = 8.0             # [°C]  secondary fluid outlet
 
-# Condenser — water side
-COND_SECONDARY      = "water"         # "air" or "water"
-T_WATER_RISE_K      = 5.0             # [K]   temperature rise across condenser
+# # Condenser — water side
+# COND_SECONDARY      = "water"         # "air" or "water"
+# T_WATER_RISE_K      = 5.0             # [K]   temperature rise across condenser
 
-COMPRESSOR_MODEL    = "GSU60182VL_4"
-COMPRESSOR_TYPE     = "Single Compressor"
-COMPRESSOR_SERIES   = "ORBIT+"
-CAPACITY_CONTROL    = "without"
+# COMPRESSOR_MODEL    = "GSU60182VL_4"
+# COMPRESSOR_TYPE     = "Single Compressor"
+# COMPRESSOR_SERIES   = "ORBIT+"
+# CAPACITY_CONTROL    = "without"
 
-VDOT_SWEPT_50HZ_M3_H = 30.2
-MAX_PRESSURE_LP_BAR   = 34.2
-MAX_PRESSURE_HP_BAR   = 45.0
-MAX_POWER_INPUT_KW    = 16.7
+# VDOT_SWEPT_50HZ_M3_H = 30.2
+# MAX_PRESSURE_LP_BAR   = 34.2
+# MAX_PRESSURE_HP_BAR   = 45.0
+# MAX_POWER_INPUT_KW    = 16.7
 
-nominal_map_point = {
-    "Tevap_C":       5.0,
-    "Tcond_C":       35.0,
-    "Qe_kW":         53.9,
-    "Pc_kW":         9.31,
-    "mdot_kg_h":     735.0,
-    "discharge_T_C": 73.3,
-    "COP":           5.79,
-}
+# nominal_map_point = {
+#     "Tevap_C":       5.0,
+#     "Tcond_C":       35.0,
+#     "Qe_kW":         53.9,
+#     "Pc_kW":         9.31,
+#     "mdot_kg_h":     735.0,
+#     "discharge_T_C": 73.3,
+#     "COP":           5.79,
+# }
 # ------------------------------------------------------------
 # END Amirhossein Naeejnezhad
 # ------------------------------------------------------------
+# ------------------------------------------------------------
+# PROJECT: Lorenzin Filippo
+# Application : Process chiller
+# Nominal Q   : 120 kW
+# Evap side   : water cooled from 16 to 11 °C
+# Cond side   : air
+# ------------------------------------------------------------
+STUDENT_NAME        = "Lorenzin Filippo"
+APPLICATION         = "Process chiller"
 
+REF                 = "R134a"
+Q_NOMINAL_TARGET    = 120.0e3         # [W]
+
+EVAP_SECONDARY      = "water"
+T_BRINE_IN_C        = 16.0            # water inlet  [°C]
+T_BRINE_OUT_C       = 11.0            # water outlet [°C]
+
+COND_SECONDARY      = "air"
+T_AIR_COND_RISE_K   = 5.0            # air temperature rise across condenser [K]
+
+COMPRESSOR_MODEL      = "8FE-60Y"
+COMPRESSOR_TYPE       = "Single Compressor"
+COMPRESSOR_SERIES     = "Standard"
+CAPACITY_CONTROL      = "without"
+
+VDOT_SWEPT_50HZ_M3_H  = 221.0        # from Technical Data tab
+MAX_PRESSURE_LP_BAR   = 19.0         # from Technical Data tab
+MAX_PRESSURE_HP_BAR   = 28.0         # from Technical Data tab
+MAX_POWER_INPUT_KW    = 63.0         # from Technical Data tab
+
+nominal_map_point = {
+    "Tevap_C":        4.0,
+    "Tcond_C":       45.0,
+    "Qe_kW":        120.9,           # from Result tab
+    "Pc_kW":         35.1,
+    "mdot_kg_h":   2747.0,
+    "discharge_T_C": 80.0,
+    "COP":            3.44,
+}
+
+# Heat-sink sweep: ambient air temperature range
+T_HEATSINK_RANGE_C = {
+    "start": 25.0,
+    "end":   40.0,
+    "step":   2.0,
+}
+T_WATER_RANGE_C = T_HEATSINK_RANGE_C  # alias
 
 # ============================================================
 # >>>  OTHER PROJECT TEMPLATES  <<<
@@ -156,9 +202,10 @@ VDOT_SWEPT_50HZ_M3_S = VDOT_SWEPT_50HZ_M3_H / 3600.0   # [m³/s]
 # =========================
 # 5) Refrigeration cycle assumptions
 # =========================
-SUPERHEAT_K  = 6.0   # [K]  superheating at compressor suction
-SUBCOOLING_K = 3.0   # [K]  subcooling at condenser outlet
-
+# SUPERHEAT_K  = 6.0   # [K]  superheating at compressor suction
+# SUBCOOLING_K = 3.0   # [K]  subcooling at condenser outlet
+SUPERHEAT_K  = 16.0   # suction gas at 20°C with Tevap=4°C → 16 K
+SUBCOOLING_K =  5.0
 
 # =========================
 # 6) Heat exchanger conductances (initial guesses)
