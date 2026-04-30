@@ -26,24 +26,38 @@ from src.plots_ph_ts import plot_ph_diagram, plot_ts_diagram
 def print_project_overview():
     """Print a human-readable summary drawn entirely from config."""
 
-    _brine_in  = getattr(cfg, 'T_BRINE_IN_C',  None)
-    _brine_out = getattr(cfg, 'T_BRINE_OUT_C', None)
-    if isinstance(_brine_in, (int, float)) and isinstance(_brine_out, (int, float)):
-        _brine_str = f"{_brine_in:.0f} to {_brine_out:.0f} °C"
+    sec_evap = cfg.EVAP_SECONDARY.lower()
+    if sec_evap == "air":
+        T_air_in = getattr(cfg, 'T_AIR_IN_C', None)
+        evap_desc = (
+            f"air in the space at ~{T_air_in:.0f} °C"
+            if isinstance(T_air_in, (int, float))
+            else "air (temperature not set in config)"
+        )
+    elif sec_evap in ("water", "brine"):
+        _brine_in  = getattr(cfg, 'T_BRINE_IN_C',  None)
+        _brine_out = getattr(cfg, 'T_BRINE_OUT_C', None)
+        if isinstance(_brine_in, (int, float)) and isinstance(_brine_out, (int, float)):
+            evap_desc = f"water/brine cooled from {_brine_in:.0f} to {_brine_out:.0f} °C"
+        else:
+            evap_desc = "water/brine (temperatures not set in config)"
     else:
-        _brine_str = "temperatures not set in config"
+        evap_desc = cfg.EVAP_SECONDARY
 
-    evap_desc = {
-        "air":   f"air in the space at ~{cfg.T_AIR_IN_C:.0f} °C",
-        "water": f"water/brine cooled from {_brine_str}",
-        "brine": f"brine cooled from {_brine_str}",
-    }.get(cfg.EVAP_SECONDARY.lower(), cfg.EVAP_SECONDARY)
+    sec_cond = cfg.COND_SECONDARY.lower()
+    if sec_cond == "water":
+        T_rise = getattr(cfg, 'T_WATER_RISE_K', None)
+        cond_desc = (
+            f"water (ΔT = {T_rise:.0f} K across condenser)"
+            if isinstance(T_rise, (int, float))
+            else "water (ΔT not set in config)"
+        )
+    elif sec_cond == "air":
+        cond_desc = "ambient air"
+    else:
+        cond_desc = cfg.COND_SECONDARY
 
-    cond_desc = {
-        "water": f"water (ΔT = {cfg.T_WATER_RISE_K:.0f} K across condenser)",
-        "air":   "ambient air",
-    }.get(cfg.COND_SECONDARY.lower(), cfg.COND_SECONDARY)
-
+    
     print(f"""
 PROJECT OVERVIEW
 ----------------
