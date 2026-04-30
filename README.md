@@ -103,8 +103,7 @@ refrigeration-cycle-model/
 │   ├── utils.py            ← unit conversions, LMTD, helpers
 │   └── main.py             ← orchestrates everything
 │
-└── report/
-    └── UNIPD_Ref_HP_Project.pdf
+└── UNIPD_Ref_HP_Project.pdf
 ```
 
 ---
