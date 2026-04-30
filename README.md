@@ -164,28 +164,6 @@ Results are exported to a CSV named automatically from your config:
 
 ---
 
-## Physics summary
-
-```
-                    ┌─────────────┐
-          Qc        │  CONDENSER  │  ← heat sink (water or air)
-    ┌─────────────→ │  KA_COND    │
-    │               └──────┬──────┘
-    │                      │ 3 (subcooled liquid)
-    │               ┌──────▼──────┐
-    │               │ EXP. VALVE  │  isenthalpic
-    │               └──────┬──────┘
-    │                      │ 4 (two-phase)
-    │               ┌──────▼──────┐
-    │      Qe        │  EVAPORATOR │  ← heat source (air or water)
-    │    ←────────── │  KA_EVAP   │
-    │               └──────┬──────┘
-    │                      │ 1 (superheated vapour)
-    │               ┌──────▼──────┐
-    └────── Pc ──── │  COMPRESSOR │  polynomial model
-                    └─────────────┘
-```
-
 The solver iterates `Tevap` and `Tcond` until the heat exchanger LMTD
 equations and the compressor polynomial are mutually consistent:
 
