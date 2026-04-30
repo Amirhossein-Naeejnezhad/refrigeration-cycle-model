@@ -28,11 +28,10 @@ def print_project_overview():
 
     _brine_in  = getattr(cfg, 'T_BRINE_IN_C',  None)
     _brine_out = getattr(cfg, 'T_BRINE_OUT_C', None)
-    _brine_str = (
-        f"{_brine_in:.0f} to {_brine_out:.0f} °C"
-        if (_brine_in is not None and _brine_out is not None)
-        else "temperatures not set in config"
-    )
+    if isinstance(_brine_in, (int, float)) and isinstance(_brine_out, (int, float)):
+        _brine_str = f"{_brine_in:.0f} to {_brine_out:.0f} °C"
+    else:
+        _brine_str = "temperatures not set in config"
 
     evap_desc = {
         "air":   f"air in the space at ~{cfg.T_AIR_IN_C:.0f} °C",
