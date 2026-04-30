@@ -12,7 +12,7 @@ Steps:
   2. Comment out the current active project block.
   3. Uncomment (or fill in) the block for your project.
   4. Adjust compressor data (sections 7-11) to match your chosen compressor.
-  5. Run main.py or run_project.ipynb as usual.
+  5. Run run_project.ipynb as usual.
 
 Sections that are project-specific and must be changed:
   - Section 0  : Student / project identity
