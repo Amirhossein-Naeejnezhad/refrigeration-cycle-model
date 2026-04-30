@@ -26,14 +26,18 @@ from src.plots_ph_ts import plot_ph_diagram, plot_ts_diagram
 def print_project_overview():
     """Print a human-readable summary drawn entirely from config."""
 
+    _brine_in  = getattr(cfg, 'T_BRINE_IN_C',  None)
+    _brine_out = getattr(cfg, 'T_BRINE_OUT_C', None)
+    _brine_str = (
+        f"{_brine_in:.0f} to {_brine_out:.0f} °C"
+        if (_brine_in is not None and _brine_out is not None)
+        else "temperatures not set in config"
+    )
+
     evap_desc = {
         "air":   f"air in the space at ~{cfg.T_AIR_IN_C:.0f} °C",
-        "water": f"water/brine cooled from "
-                 f"{getattr(cfg, 'T_BRINE_IN_C', '?'):.0f} to "
-                 f"{getattr(cfg, 'T_BRINE_OUT_C', '?'):.0f} °C",
-        "brine": f"brine cooled from "
-                 f"{getattr(cfg, 'T_BRINE_IN_C', '?'):.0f} to "
-                 f"{getattr(cfg, 'T_BRINE_OUT_C', '?'):.0f} °C",
+        "water": f"water/brine cooled from {_brine_str}",
+        "brine": f"brine cooled from {_brine_str}",
     }.get(cfg.EVAP_SECONDARY.lower(), cfg.EVAP_SECONDARY)
 
     cond_desc = {
