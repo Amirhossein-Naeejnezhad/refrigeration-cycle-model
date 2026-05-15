@@ -48,9 +48,12 @@ Sections that usually stay the same:
 # PROJECT: Amirhossein Naeejnezhad
 # Application : Cooling data center
 # Nominal Q   : 50 kW
-# Evap side   : air in the room at 12 °C
-# Cond side   : water
-# Compressor  : Bitzer GSU60182VL_4 (ORBIT+, R32)
+# Evap side   : air in the room, 12 °C -> 8 °C
+# Cond side   : water, 5 K temperature rise
+# Compressor  : Bitzer GSD60235VL_4 (ORBIT, R32)
+# Nominal point corrected using approach-temperature assumptions:
+#   air evaporator  : Tevap ≈ 0 °C
+#   water condenser : Tcond ≈ 37.5 °C for 30 -> 35 °C water
 # ------------------------------------------------------------
 STUDENT_NAME        = "Amirhossein Naeejnezhad"
 APPLICATION         = "Cooling data center"
@@ -67,24 +70,24 @@ T_AIR_OUT_C         = 8.0             # [°C]  secondary fluid outlet
 COND_SECONDARY      = "water"         # "air" or "water"
 T_WATER_RISE_K      = 5.0             # [K]   temperature rise across condenser
 
-COMPRESSOR_MODEL    = "GSU60182VL_4"
+COMPRESSOR_MODEL    = "GSD60235VL_4"
 COMPRESSOR_TYPE     = "Single Compressor"
-COMPRESSOR_SERIES   = "ORBIT+"
+COMPRESSOR_SERIES   = "ORBIT"
 CAPACITY_CONTROL    = "without"
 
-VDOT_SWEPT_50HZ_M3_H = 30.2
+VDOT_SWEPT_50HZ_M3_H = 37.6
 MAX_PRESSURE_LP_BAR   = 34.2
 MAX_PRESSURE_HP_BAR   = 45.0
-MAX_POWER_INPUT_KW    = 16.7
+MAX_POWER_INPUT_KW    = 24.0
 
 nominal_map_point = {
-    "Tevap_C":       5.0,
-    "Tcond_C":       35.0,
-    "Qe_kW":         53.9,
-    "Pc_kW":         9.31,
-    "mdot_kg_h":     735.0,
-    "discharge_T_C": 73.3,
-    "COP":           5.79,
+    "Tevap_C":       0.0,
+    "Tcond_C":       37.5,
+    "Qe_kW":         56.2,
+    "Pc_kW":         13.23,
+    "mdot_kg_h":     783.0,
+    "discharge_T_C": 86.7,
+    "COP":           4.25,
 }
 # ------------------------------------------------------------
 # END Amirhossein Naeejnezhad
@@ -207,6 +210,18 @@ SUBCOOLING_K = 3.0   # [K]  subcooling at condenser outlet
 # SUPERHEAT_K  = 16.0   # suction gas at 20°C with Tevap=4°C → 16 K
 # SUBCOOLING_K =  5.0
 
+
+# =========================
+# 5b) Heat exchanger approach assumptions used for nominal design
+# =========================
+# These values are rules of thumb for selecting nominal refrigerant-side
+# temperatures from the known secondary-fluid temperatures. The actual
+# off-design operating points are still solved with the LMTD model.
+APPROACH_COND_WATER_K = 5.0
+APPROACH_EVAP_WATER_K = 5.0
+APPROACH_COND_AIR_K   = 15.0
+APPROACH_EVAP_AIR_K   = 10.0
+
 # =========================
 # 6) Heat exchanger conductances (initial guesses)
 # These are overwritten by the design calculation in the solver.
@@ -271,7 +286,7 @@ REFERENCE_WATER_TEMP_C = 30.0
 # 15) High pressure-ratio study
 # =========================
 HIGH_PR_ANALYSIS = {
-    "Tevap_fixed_C": 5.0,
+    "Tevap_fixed_C": 0.0,
     "Tcond_min_C":   30.0,
     "Tcond_max_C":   70.0,
     "num_points":    20,
