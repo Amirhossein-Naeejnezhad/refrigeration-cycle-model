@@ -12,7 +12,7 @@ Steps:
   2. Comment out the current active project block.
   3. Uncomment (or fill in) the block for your project.
   4. Adjust compressor data (sections 7-11) to match your chosen compressor.
-  5. Run run_project.ipynb as usual.
+  5. Run run_project_colab.ipynb as usual.
 
 Sections that are project-specific and must be changed:
   - Section 0  : Student / project identity
@@ -48,11 +48,11 @@ Sections that usually stay the same:
 # PROJECT: Amirhossein Naeejnezhad
 # Application : Cooling data center
 # Nominal Q   : 50 kW
-# Evap side   : air in the room, 12 °C -> 8 °C
+# Evap side   : data-center return air cooled from 24 °C to 12 °C
 # Cond side   : water, 5 K temperature rise
 # Compressor  : Bitzer GSD60235VL_4 (ORBIT, R32)
 # Nominal point corrected using approach-temperature assumptions:
-#   air evaporator  : Tevap ≈ 0 °C
+#   air evaporator  : Tevap ≈ T_air,out - 10 K = 2 °C
 #   water condenser : Tcond ≈ 37.5 °C for 30 -> 35 °C water
 # ------------------------------------------------------------
 STUDENT_NAME        = "Amirhossein Naeejnezhad"
@@ -62,9 +62,11 @@ REF                 = "R32"
 Q_NOMINAL_TARGET    = 50.0e3          # [W]
 
 # Evaporator — air side
+# The assigned 12 °C room condition is interpreted as the cold supply air
+# delivered to the servers; the evaporator inlet is warmer return air.
 EVAP_SECONDARY      = "air"           # "air" or "water" or "brine"
-T_AIR_IN_C          = 12.0            # [°C]  secondary fluid inlet
-T_AIR_OUT_C         = 8.0             # [°C]  secondary fluid outlet
+T_AIR_IN_C          = 24.0            # [°C]  secondary fluid inlet / return air
+T_AIR_OUT_C         = 12.0            # [°C]  secondary fluid outlet / supply air
 
 # Condenser — water side
 COND_SECONDARY      = "water"         # "air" or "water"
@@ -81,13 +83,13 @@ MAX_PRESSURE_HP_BAR   = 45.0
 MAX_POWER_INPUT_KW    = 24.0
 
 nominal_map_point = {
-    "Tevap_C":       0.0,
+    "Tevap_C":       2.0,
     "Tcond_C":       37.5,
-    "Qe_kW":         56.2,
-    "Pc_kW":         13.23,
-    "mdot_kg_h":     783.0,
-    "discharge_T_C": 86.7,
-    "COP":           4.25,
+    "Qe_kW":         60.2,
+    "Pc_kW":         13.27,
+    "mdot_kg_h":     838.0,
+    "discharge_T_C": 84.0,
+    "COP":           4.54,
 }
 # ------------------------------------------------------------
 # END Amirhossein Naeejnezhad
@@ -161,8 +163,8 @@ nominal_map_point = {
 #
 # # Evaporator secondary fluid
 # EVAP_SECONDARY      = "air"           # "air" | "water" | "brine"
-# T_AIR_IN_C          = 12.0            # [°C]  if air-cooled evaporator
-# T_AIR_OUT_C         = 7.0             # [°C]  if air-cooled evaporator
+# T_AIR_IN_C          = 24.0            # [°C]  if air-cooled evaporator
+# T_AIR_OUT_C         = 12.0            # [°C]  if air-cooled evaporator
 # # (for water/brine evaporator use T_BRINE_IN_C / T_BRINE_OUT_C below)
 # # T_BRINE_IN_C      = 18.0            # [°C]
 # # T_BRINE_OUT_C     = 12.0            # [°C]
@@ -286,7 +288,7 @@ REFERENCE_WATER_TEMP_C = 30.0
 # 15) High pressure-ratio study
 # =========================
 HIGH_PR_ANALYSIS = {
-    "Tevap_fixed_C": 0.0,
+    "Tevap_fixed_C": 2.0,
     "Tcond_min_C":   30.0,
     "Tcond_max_C":   70.0,
     "num_points":    20,
