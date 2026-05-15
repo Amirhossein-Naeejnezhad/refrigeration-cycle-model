@@ -42,6 +42,13 @@ def _hs_label():
     return "Heat-sink inlet temperature [°C]"
 
 
+def _plot_subtitle():
+    """
+    Return a clean project subtitle for figures without personal names.
+    """
+    return f"{cfg.APPLICATION} — {cfg.REF}"
+
+
 # ============================================================
 # 1) Standard performance plots
 # ============================================================
@@ -56,6 +63,7 @@ def plot_basic_performance(df):
     x_col   = _hs_col(df)
     x_label = _hs_label()
     x       = df[x_col]
+    subtitle = _plot_subtitle()
 
     make_plot(
         x,
@@ -63,8 +71,7 @@ def plot_basic_performance(df):
         ["EER"],
         x_label,
         "EER [-]",
-        f"Energy Efficiency Ratio vs Heat-Sink Temperature\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Energy Efficiency Ratio vs Heat-Sink Temperature\n{subtitle}",
     )
 
     make_plot(
@@ -73,8 +80,7 @@ def plot_basic_performance(df):
         ["Cooling capacity"],
         x_label,
         "Cooling capacity [kW]",
-        f"Cooling Capacity vs Heat-Sink Temperature\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Cooling Capacity vs Heat-Sink Temperature\n{subtitle}",
     )
 
     make_plot(
@@ -83,8 +89,7 @@ def plot_basic_performance(df):
         ["Compressor power"],
         x_label,
         "Power [kW]",
-        f"Compressor Power vs Heat-Sink Temperature\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Compressor Power vs Heat-Sink Temperature\n{subtitle}",
     )
 
     make_plot(
@@ -93,8 +98,7 @@ def plot_basic_performance(df):
         ["Evaporating temperature", "Condensing temperature"],
         x_label,
         "Temperature [°C]",
-        f"Cycle Temperatures vs Heat-Sink Temperature\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Cycle Temperatures vs Heat-Sink Temperature\n{subtitle}",
     )
 
     make_plot(
@@ -103,8 +107,7 @@ def plot_basic_performance(df):
         ["Pressure ratio"],
         x_label,
         "PR [-]",
-        f"Pressure Ratio vs Heat-Sink Temperature\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Pressure Ratio vs Heat-Sink Temperature\n{subtitle}",
     )
 
     make_plot(
@@ -113,8 +116,7 @@ def plot_basic_performance(df):
         ["Isentropic efficiency", "Volumetric efficiency"],
         x_label,
         "Efficiency [-]",
-        f"Compressor Efficiencies vs Operating Conditions\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {cfg.REF}",
+        f"Compressor Efficiencies vs Operating Conditions\n{subtitle}",
     )
 
 
