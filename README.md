@@ -11,11 +11,17 @@ The active case is Amirhossein Naeejnezhad's assigned project:
 - Assigned air condition: 12 °C
 - Condenser secondary fluid: water
 - Refrigerant: R32
-- Compressor: Bitzer GSD60235VL_4
+- Compressor: Bitzer GSU60182VL_4
 
 The assigned 12 °C air condition is modelled as the data-center supply-air
 temperature. A 24 °C return-air temperature is assumed to close the evaporator
-energy balance and estimate the air mass flow rate.
+energy balance and estimate the air mass flow rate. This is an additional
+modelling assumption because the assignment provides only one air-side
+temperature.
+
+The selected compressor provides about 47.7 kW at the nominal compressor-selection
+point, which is slightly below the 50 kW assignment target. It was selected because
+it is closer to the assigned capacity than the next larger Bitzer R32 scroll option.
 
 ---
 
@@ -104,13 +110,17 @@ refrigeration-cycle-model/
 
 ---
 
-## Important assumptions
+## Important assumptions and limitations
 
 - Superheat at compressor suction is fixed.
 - Subcooling at condenser outlet is fixed.
 - Pressure drops are neglected.
 - Heat exchangers are treated with counterflow LMTD.
+- The assigned 12 °C air condition is interpreted as supply air; the 24 °C
+  return-air temperature is assumed only to close the evaporator-side energy
+  balance.
 - `KA_EVAP` and `KA_COND` are computed at the nominal point and then kept
   constant during the heat-sink sweep.
+- CoolProp is used for thermophysical properties.
 - The compressor polynomial is checked against a configured operating envelope;
   this is a warning system, not a replacement for official manufacturer limits.
