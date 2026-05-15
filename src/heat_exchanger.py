@@ -67,17 +67,28 @@ def _cond_secondary_temps_K(T_cond_C_nom):
     Return (T_sec_in_K, T_sec_out_K) for the condenser secondary fluid
     at the nominal operating point, based on cfg.COND_SECONDARY.
 
-    "water" → inlet = Tcond_nom - 5 K approach (standard design guess),
-               outlet = inlet - T_WATER_RISE_K
-    "air"   → inlet taken from the parametric study midpoint
-               (Tcond_nom - 10 K is a reasonable air-cooled design point),
-               outlet = inlet + T_AIR_RISE_K  (default 5 K if not set)
+    "water" → the condensing temperature is assumed to be above the
+               average water temperature by APPROACH_COND_WATER_K:
+
+                   Tcond = T_water_avg + approach
+                   T_water_out = T_water_in + T_WATER_RISE_K
+
+               Therefore:
+
+                   T_water_avg = Tcond - approach
+                   T_water_in  = T_water_avg - T_WATER_RISE_K/2
+                   T_water_out = T_water_avg + T_WATER_RISE_K/2
+
+    "air"   → inlet taken from the parametric study midpoint,
+               outlet = inlet + T_AIR_COND_RISE_K  (default 5 K if not set)
     """
     sec = cfg.COND_SECONDARY.lower()
 
     if sec == "water":
-        T_w_in_C  = T_cond_C_nom - 5.0          # 5 K approach (design)
-        T_w_out_C = T_w_in_C - cfg.T_WATER_RISE_K
+        approach = getattr(cfg, "APPROACH_COND_WATER_K", 5.0)
+        T_w_avg_C = T_cond_C_nom - approach
+        T_w_in_C  = T_w_avg_C - 0.5 * cfg.T_WATER_RISE_K
+        T_w_out_C = T_w_avg_C + 0.5 * cfg.T_WATER_RISE_K
         return c_to_k(T_w_in_C), c_to_k(T_w_out_C)
 
     if sec == "air":
