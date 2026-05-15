@@ -178,7 +178,7 @@ def plot_ph_diagram(df):
     ax.set_xlabel("Specific enthalpy [kJ/kg]")
     ax.set_ylabel("Pressure [bar]")
     ax.set_title(
-        f"P-h diagram — superheating & subcooling visible\n"
+        f"P-h diagram — superheating & subcooling\n"
         f"{_plot_subtitle(ref)}"
     )
     ax.legend()
@@ -326,7 +326,7 @@ def plot_ts_diagram(df):
     ax.set_xlabel("Specific entropy [kJ/kg·K]")
     ax.set_ylabel("Temperature [°C]")
     ax.set_title(
-        f"T-s diagram — superheating & subcooling visible\n"
+        f"T-s diagram — superheating & subcooling\n"
         f"{_plot_subtitle(ref)}"
     )
     ax.legend()
