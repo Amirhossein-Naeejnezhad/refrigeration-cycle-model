@@ -12,8 +12,9 @@ This module builds high-quality thermodynamic diagrams:
   - Explicit visualisation of superheating and subcooling
 
 Diagrams are built from CoolProp states stored in the result DataFrame.
-All project-specific values (refrigerant, student name, case temperatures)
-are read from config at call time — no hardcoded strings.
+Project-specific technical values such as refrigerant and application are
+read from config at call time. Personal names are intentionally excluded
+from figure titles.
 """
 
 import numpy as np
@@ -33,6 +34,11 @@ def _hs_col(df):
     if "HS in [°C]" in df.columns:
         return "HS in [°C]"
     return "Water in [°C]"
+
+
+def _plot_subtitle(ref):
+    """Return a clean project subtitle for figures without personal names."""
+    return f"{cfg.APPLICATION} — {ref}"
 
 
 def _select_ph_cases(df):
@@ -173,7 +179,7 @@ def plot_ph_diagram(df):
     ax.set_ylabel("Pressure [bar]")
     ax.set_title(
         f"P-h diagram — superheating & subcooling visible\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {ref}"
+        f"{_plot_subtitle(ref)}"
     )
     ax.legend()
     plt.tight_layout()
@@ -321,7 +327,7 @@ def plot_ts_diagram(df):
     ax.set_ylabel("Temperature [°C]")
     ax.set_title(
         f"T-s diagram — superheating & subcooling visible\n"
-        f"{cfg.STUDENT_NAME} — {cfg.APPLICATION} — {ref}"
+        f"{_plot_subtitle(ref)}"
     )
     ax.legend()
     plt.tight_layout()
