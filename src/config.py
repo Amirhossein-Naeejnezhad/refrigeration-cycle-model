@@ -18,29 +18,29 @@ Q_NOMINAL_TARGET = 50.0e3                # [W] assignment target
 # 2) Refrigerant and compressor
 # =============================================================================
 REF = "R32"
-COMPRESSOR_MODEL = "GSD60235VL_4"
+COMPRESSOR_MODEL = "GSU60182VL_4"
 COMPRESSOR_TYPE = "Single Compressor"
-COMPRESSOR_SERIES = "ORBIT"
+COMPRESSOR_SERIES = "ORBIT+"
 CAPACITY_CONTROL = "without"
 
-VDOT_SWEPT_50HZ_M3_H = 37.6              # [m³/h]
+VDOT_SWEPT_50HZ_M3_H = 30.2              # [m³/h]
 VDOT_SWEPT_50HZ_M3_S = VDOT_SWEPT_50HZ_M3_H / 3600.0
 
 MAX_PRESSURE_LP_BAR = 34.2
 MAX_PRESSURE_HP_BAR = 45.0
-MAX_POWER_INPUT_KW = 24.0
+MAX_POWER_INPUT_KW = 16.7
 
 # Manufacturer/check point used to validate the polynomial model.
-# The compressor is slightly larger than the 50 kW target because commercial
-# compressors are selected from discrete manufacturer models.
+# This compressor is the closest available R32 Bitzer scroll option to the
+# 50 kW assignment target at the selected nominal operating point.
 nominal_map_point = {
     "Tevap_C": 2.0,
     "Tcond_C": 37.5,
-    "Qe_kW": 60.26,
-    "Pc_kW": 13.27,
-    "mdot_kg_h": 838.0,
-    "discharge_T_C": 84.0,
-    "COP": 4.54,
+    "Qe_kW": 47.7,
+    "Pc_kW": 9.69,
+    "mdot_kg_h": 664.0,
+    "discharge_T_C": 80.3,
+    "COP": 4.92,
 }
 
 # Conservative operating envelope used only to flag suspicious polynomial use.
