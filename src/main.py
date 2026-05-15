@@ -20,6 +20,15 @@ from src.plots_ph_ts import plot_ph_diagram, plot_ts_diagram
 
 
 # ============================================================
+# SECONDARY-FLUID PROPERTY ASSUMPTIONS
+# ============================================================
+# These are used only to estimate secondary-fluid mass flow rates from
+# Q = m_dot * cp * DeltaT. They can be overridden from config.py if needed.
+CP_AIR_DEFAULT_J_KG_K = 1005.0
+CP_WATER_DEFAULT_J_KG_K = 4180.0
+
+
+# ============================================================
 # PROJECT OVERVIEW PRINTER
 # ============================================================
 
@@ -28,15 +37,15 @@ def print_project_overview():
 
     sec_evap = cfg.EVAP_SECONDARY.lower()
     if sec_evap == "air":
-        T_air_in = getattr(cfg, 'T_AIR_IN_C', None)
-        evap_desc = (
-            f"air in the space at ~{T_air_in:.0f} °C"
-            if isinstance(T_air_in, (int, float))
-            else "air (temperature not set in config)"
-        )
+        T_air_in = getattr(cfg, "T_AIR_IN_C", None)
+        T_air_out = getattr(cfg, "T_AIR_OUT_C", None)
+        if isinstance(T_air_in, (int, float)) and isinstance(T_air_out, (int, float)):
+            evap_desc = f"air cooled from {T_air_in:.0f} to {T_air_out:.0f} °C"
+        else:
+            evap_desc = "air (temperature not set in config)"
     elif sec_evap in ("water", "brine"):
-        _brine_in  = getattr(cfg, 'T_BRINE_IN_C',  None)
-        _brine_out = getattr(cfg, 'T_BRINE_OUT_C', None)
+        _brine_in = getattr(cfg, "T_BRINE_IN_C", None)
+        _brine_out = getattr(cfg, "T_BRINE_OUT_C", None)
         if isinstance(_brine_in, (int, float)) and isinstance(_brine_out, (int, float)):
             evap_desc = f"water/brine cooled from {_brine_in:.0f} to {_brine_out:.0f} °C"
         else:
@@ -46,7 +55,7 @@ def print_project_overview():
 
     sec_cond = cfg.COND_SECONDARY.lower()
     if sec_cond == "water":
-        T_rise = getattr(cfg, 'T_WATER_RISE_K', None)
+        T_rise = getattr(cfg, "T_WATER_RISE_K", None)
         cond_desc = (
             f"water (ΔT = {T_rise:.0f} K across condenser)"
             if isinstance(T_rise, (int, float))
@@ -57,7 +66,6 @@ def print_project_overview():
     else:
         cond_desc = cfg.COND_SECONDARY
 
-    
     print(f"""
 PROJECT OVERVIEW
 ----------------
@@ -71,19 +79,73 @@ polynomial (Bitzer / Copeland / Frascold) in evaporating temperature
 (To) and condensing temperature (Tc), providing continuous functions for:
   - Cooling capacity  Qe  [W]
   - Compressor power  Pc  [W]
-  - Mass flow rate    mdot [kg/s]
+  - Refrigerant mass flow rate mdot [kg/s]
 
-These are combined with CoolProp states to derive:
-  - Isentropic efficiency  eta_is
-  - Volumetric efficiency  eta_vol
+Secondary-fluid mass flow rates are estimated from:
+  Q = m_dot * cp * DeltaT
 
 Evaporator secondary : {evap_desc}
 Condenser  secondary : {cond_desc}
 
 The parametric study varies the heat-sink (condenser secondary inlet)
-temperature and reports cooling capacity and EER at each point.
-Heat exchangers are matched iteratively using Q = KA · ΔTLM.
+temperature and reports cooling capacity, EER, and secondary-fluid mass
+flow rates at each point. Heat exchangers are matched iteratively using
+Q = KA · ΔTLM.
 """)
+
+
+# ============================================================
+# SECONDARY-FLUID MASS FLOW HELPERS
+# ============================================================
+
+def _safe_mdot_from_duty(Q_W, cp_J_kg_K, deltaT_K):
+    """Return m_dot [kg/s] from Q = m_dot * cp * DeltaT."""
+    if cp_J_kg_K <= 0 or deltaT_K <= 0:
+        return np.nan
+    return Q_W / (cp_J_kg_K * deltaT_K)
+
+
+def evaporator_secondary_mdot(Qe_W):
+    """
+    Estimate evaporator secondary-fluid mass flow rate [kg/s].
+
+    For the active data-center case this is the air mass flow rate:
+        m_dot_air = Qe / (cp_air * (T_air_in - T_air_out))
+    """
+    sec = cfg.EVAP_SECONDARY.lower()
+
+    if sec == "air":
+        cp = getattr(cfg, "CP_AIR_J_KG_K", CP_AIR_DEFAULT_J_KG_K)
+        deltaT = cfg.T_AIR_IN_C - cfg.T_AIR_OUT_C
+        return _safe_mdot_from_duty(Qe_W, cp, deltaT)
+
+    if sec in ("water", "brine"):
+        cp = getattr(cfg, "CP_WATER_J_KG_K", CP_WATER_DEFAULT_J_KG_K)
+        deltaT = cfg.T_BRINE_IN_C - cfg.T_BRINE_OUT_C
+        return _safe_mdot_from_duty(Qe_W, cp, deltaT)
+
+    return np.nan
+
+
+def condenser_secondary_mdot(Qc_W, T_sec_in_C, T_sec_out_C):
+    """
+    Estimate condenser secondary-fluid mass flow rate [kg/s].
+
+    For the active data-center case this is the condenser water mass flow:
+        m_dot_water = Qc / (cp_water * (T_water_out - T_water_in))
+    """
+    sec = cfg.COND_SECONDARY.lower()
+    deltaT = T_sec_out_C - T_sec_in_C
+
+    if sec == "water":
+        cp = getattr(cfg, "CP_WATER_J_KG_K", CP_WATER_DEFAULT_J_KG_K)
+        return _safe_mdot_from_duty(Qc_W, cp, deltaT)
+
+    if sec == "air":
+        cp = getattr(cfg, "CP_AIR_J_KG_K", CP_AIR_DEFAULT_J_KG_K)
+        return _safe_mdot_from_duty(Qc_W, cp, deltaT)
+
+    return np.nan
 
 
 # ============================================================
@@ -129,16 +191,25 @@ def run_project():
         c_to_k(nmp["Tcond_C"]),
     )
 
+    nominal_air_mdot = evaporator_secondary_mdot(nominal_perf["Qe"])
+    nominal_water_mdot = condenser_secondary_mdot(
+        nominal_perf["Qc"],
+        cfg.REFERENCE_WATER_TEMP_C,
+        cfg.REFERENCE_WATER_TEMP_C + cfg.T_WATER_RISE_K,
+    )
+
     print("NOMINAL RECONSTRUCTION FROM POLYNOMIAL + COOLPROP")
     print("--------------------------------------------------")
-    print(f"Derived mdot    = {nominal_perf['mdot']:.4f} kg/s")
-    print(f"Derived eta_is  = {nominal_perf['eta_is']:.4f}")
-    print(f"Derived eta_vol = {nominal_perf['eta_vol']:.4f}")
-    print(f"Thermo Qe       = {nominal_perf['Qe']/1000:.2f} kW")
-    print(f"Poly   Qe       = {nominal_perf['Qe_map']/1000:.2f} kW")
-    print(f"Thermo Pc       = {nominal_perf['Pc']/1000:.2f} kW")
-    print(f"Poly   Pc       = {nominal_perf['Pc_map']/1000:.2f} kW")
-    print(f"EER             = {nominal_perf['EER']:.3f}")
+    print(f"Derived refrigerant mdot = {nominal_perf['mdot']:.4f} kg/s")
+    print(f"Derived eta_is           = {nominal_perf['eta_is']:.4f}")
+    print(f"Derived eta_vol          = {nominal_perf['eta_vol']:.4f}")
+    print(f"Thermo Qe                = {nominal_perf['Qe']/1000:.2f} kW")
+    print(f"Poly   Qe                = {nominal_perf['Qe_map']/1000:.2f} kW")
+    print(f"Thermo Pc                = {nominal_perf['Pc']/1000:.2f} kW")
+    print(f"Poly   Pc                = {nominal_perf['Pc_map']/1000:.2f} kW")
+    print(f"EER                      = {nominal_perf['EER']:.3f}")
+    print(f"Evaporator air mdot      = {nominal_air_mdot:.3f} kg/s")
+    print(f"Condenser water mdot     = {nominal_water_mdot:.3f} kg/s")
     print()
 
     # ---- Parametric sweep --------------------------------------
@@ -161,6 +232,12 @@ def run_project():
 
         P_evap_bar = real["P_evap"] / 1e5
         P_cond_bar = real["P_cond"] / 1e5
+        mdot_evap_secondary = evaporator_secondary_mdot(real["Qe"])
+        mdot_cond_secondary = condenser_secondary_mdot(
+            real["Qc"],
+            res["T_heatsink_in_C"],
+            res["T_heatsink_out_C"],
+        )
 
         results.append({
             # Generic heat-sink columns
@@ -177,7 +254,9 @@ def run_project():
             "PR [-]":            real["PR"],
             "eta_is [-]":        real["eta_is"],
             "eta_vol [-]":       real["eta_vol"],
-            "m_dot [kg/s]":      real["mdot"],
+            "m_dot_ref [kg/s]":  real["mdot"],
+            "m_dot_air_evap [kg/s]":   mdot_evap_secondary,
+            "m_dot_water_cond [kg/s]": mdot_cond_secondary,
             "Qe [kW]":           real["Qe"]     / 1000.0,
             "Pc [kW]":           real["Pc"]     / 1000.0,
             "Qc [kW]":           real["Qc"]     / 1000.0,
@@ -196,14 +275,14 @@ def run_project():
     df_print = df.drop(columns=["Cycle object"]).copy()
 
     pd.set_option("display.max_columns", None)
-    pd.set_option("display.width", 220)
+    pd.set_option("display.width", 260)
     pd.set_option("display.precision", 4)
 
     print("\nSUMMARY TABLE")
     print(df_print.to_string(index=False))
 
     # ---- Reference case detailed states ------------------------
-    ref_row  = df.iloc[
+    ref_row = df.iloc[
         np.argmin(np.abs(df["HS in [°C]"] - cfg.REFERENCE_WATER_TEMP_C))
     ]
     ref_case = ref_row["Cycle object"]
@@ -217,16 +296,18 @@ def run_project():
     print(f"Derived isentropic efficiency     = {real_ref['eta_is']:.4f}")
     print(f"Derived volumetric efficiency     = {real_ref['eta_vol']:.4f}")
     print(f"Polynomial extrapolation flag     = {real_ref['map_extrapolated']}")
+    print(f"Evaporator air mass flow          = {ref_row['m_dot_air_evap [kg/s]']:.3f} kg/s")
+    print(f"Condenser water mass flow         = {ref_row['m_dot_water_cond [kg/s]']:.3f} kg/s")
 
     rows = []
     for i in [1, 2, 3, 4]:
-        st    = real_ref["states"][i]
+        st = real_ref["states"][i]
         s_val = st["s"] / 1000.0 if st["s"] is not None else float("nan")
         rows.append({
-            "State":      i,
-            "T [°C]":     k_to_c(st["T"]),
-            "P [bar]":    st["P"] / 1e5,
-            "h [kJ/kg]":  st["h"] / 1000.0,
+            "State":       i,
+            "T [°C]":      k_to_c(st["T"]),
+            "P [bar]":     st["P"] / 1e5,
+            "h [kJ/kg]":   st["h"] / 1000.0,
             "s [kJ/kg·K]": s_val,
         })
     df_states = pd.DataFrame(rows)
@@ -250,12 +331,12 @@ def run_project():
     )
 
     # ---- Engineering interpretation ----------------------------
-    q_drop_pct   = 100 * (df["Qe [kW]"].iloc[0]  - df["Qe [kW]"].iloc[-1])  / df["Qe [kW]"].iloc[0]
-    eer_drop_pct = 100 * (df["EER [-]"].iloc[0]   - df["EER [-]"].iloc[-1])  / df["EER [-]"].iloc[0]
-    pc_rise_pct  = 100 * (df["Pc [kW]"].iloc[-1]  - df["Pc [kW]"].iloc[0])   / df["Pc [kW]"].iloc[0]
+    q_drop_pct = 100 * (df["Qe [kW]"].iloc[0] - df["Qe [kW]"].iloc[-1]) / df["Qe [kW]"].iloc[0]
+    eer_drop_pct = 100 * (df["EER [-]"].iloc[0] - df["EER [-]"].iloc[-1]) / df["EER [-]"].iloc[0]
+    pc_rise_pct = 100 * (df["Pc [kW]"].iloc[-1] - df["Pc [kW]"].iloc[0]) / df["Pc [kW]"].iloc[0]
 
     T_start = df["HS in [°C]"].iloc[0]
-    T_end   = df["HS in [°C]"].iloc[-1]
+    T_end = df["HS in [°C]"].iloc[-1]
 
     print("\nENGINEERING INTERPRETATION")
     print("--------------------------")
@@ -273,8 +354,9 @@ Physical interpretation:
   3) Compressor work rises; refrigeration effect worsens.
   4) Therefore EER drops and cooling capacity decreases.
 
-eta_is and eta_vol are inferred from the manufacturer polynomial combined
-with CoolProp states — no guessed algebraic correlations are used.
+Secondary-fluid mass flow rates are calculated from Q = m_dot * cp * DeltaT:
+  - Evaporator air: condenser-independent air flow required for the cooling duty.
+  - Condenser water: water flow required to reject Qc with the imposed 5 K rise.
 """)
 
     # ---- Project-work consistency check ------------------------
@@ -282,66 +364,19 @@ with CoolProp states — no guessed algebraic correlations are used.
     print("------------------------------")
 
     checks = [
-        (
-            "Compressor selected",
-            True,
-            f"{cfg.COMPRESSOR_MODEL} registered and active",
-        ),
-        (
-            "Refrigerant defined",
-            bool(cfg.REF),
-            f"REF = {cfg.REF}",
-        ),
-        (
-            "Nominal cooling capacity defined",
-            cfg.Q_NOMINAL_TARGET > 0,
-            f"Q_NOMINAL_TARGET = {cfg.Q_NOMINAL_TARGET/1000:.0f} kW",
-        ),
-        (
-            "Suction superheat fixed",
-            cfg.SUPERHEAT_K > 0,
-            f"Superheat = {cfg.SUPERHEAT_K:.1f} K",
-        ),
-        (
-            "Condenser subcooling fixed",
-            cfg.SUBCOOLING_K > 0,
-            f"Subcooling = {cfg.SUBCOOLING_K:.1f} K",
-        ),
-        (
-            "Constant KA values used",
-            (KA_EVAP > 0) and (KA_COND > 0),
-            f"KA_EVAP = {KA_EVAP:.1f} W/K,  KA_COND = {KA_COND:.1f} W/K",
-        ),
-        (
-            "10-coefficient polynomial model used",
-            True,
-            "Yes — poly_eval(coeff, To, Tc)",
-        ),
-        (
-            "eta_is derived from polynomial + CoolProp",
-            True,
-            "eta_is = (h2s − h1) / (Pc_poly / mdot_poly)",
-        ),
-        (
-            "eta_vol derived from polynomial + swept volume",
-            True,
-            "eta_vol = mdot_poly / (rho1 · Vs)",
-        ),
-        (
-            "HX iterative matching used",
-            True,
-            "Tevap & Tcond iterated with Q = KA · ΔTLM",
-        ),
-        (
-            "Objective: Qe and EER vs heat-sink temperature",
-            True,
-            "Yes — parametric sweep stored in df",
-        ),
-        (
-            "No extrapolation flag triggered",
-            not df["Map extrapolated"].any(),
-            "Polynomial covers all operating points",
-        ),
+        ("Compressor selected", True, f"{cfg.COMPRESSOR_MODEL} registered and active"),
+        ("Refrigerant defined", bool(cfg.REF), f"REF = {cfg.REF}"),
+        ("Nominal cooling capacity defined", cfg.Q_NOMINAL_TARGET > 0, f"Q_NOMINAL_TARGET = {cfg.Q_NOMINAL_TARGET/1000:.0f} kW"),
+        ("Suction superheat fixed", cfg.SUPERHEAT_K > 0, f"Superheat = {cfg.SUPERHEAT_K:.1f} K"),
+        ("Condenser subcooling fixed", cfg.SUBCOOLING_K > 0, f"Subcooling = {cfg.SUBCOOLING_K:.1f} K"),
+        ("Constant KA values used", (KA_EVAP > 0) and (KA_COND > 0), f"KA_EVAP = {KA_EVAP:.1f} W/K,  KA_COND = {KA_COND:.1f} W/K"),
+        ("10-coefficient polynomial model used", True, "Yes — poly_eval(coeff, To, Tc)"),
+        ("eta_is derived from polynomial + CoolProp", True, "eta_is = (h2s − h1) / (Pc_poly / mdot_poly)"),
+        ("eta_vol derived from polynomial + swept volume", True, "eta_vol = mdot_poly / (rho1 · Vs)"),
+        ("HX iterative matching used", True, "Tevap & Tcond iterated with Q = KA · ΔTLM"),
+        ("Secondary-fluid mdot calculated", True, "m_dot_air_evap and m_dot_water_cond added to df_print"),
+        ("Objective: Qe and EER vs heat-sink temperature", True, "Yes — parametric sweep stored in df"),
+        ("No extrapolation flag triggered", not df["Map extrapolated"].any(), "Polynomial covers all operating points"),
     ]
 
     for name, ok, msg in checks:
@@ -359,8 +394,9 @@ Evap side    : {cfg.EVAP_SECONDARY}
 Cond side    : {cfg.COND_SECONDARY}
 
 The manufacturer polynomial provides a continuous, smooth evaluation of
-Qe, Pc, and mdot. eta_is and eta_vol are derived rigorously, preserving
-full thermodynamic consistency across the entire parametric study.
+Qe, Pc, and refrigerant mdot. eta_is and eta_vol are derived rigorously.
+The secondary-fluid air and water mass flow rates are then calculated from
+the heat duties and imposed secondary-fluid temperature differences.
 """)
 
     # ---- Export ------------------------------------------------
