@@ -1,303 +1,132 @@
-# ============================================================
-# CONFIGURATION FILE
-# Refrigeration Cycle Model
-# ============================================================
-"""
-HOW TO USE THIS FILE
-====================
-This file is the ONLY file you need to edit to run a different project.
+"""Project configuration for the refrigeration-cycle model.
 
-Steps:
-  1. Find the block labelled "ACTIVE PROJECT SETTINGS" below.
-  2. Comment out the current active project block.
-  3. Uncomment (or fill in) the block for your project.
-  4. Adjust compressor data (sections 7-11) to match your chosen compressor.
-  5. Run run_project_colab.ipynb as usual.
-
-Sections that are project-specific and must be changed:
-  - Section 0  : Student / project identity
-  - Section 1  : Refrigerant
-  - Section 2  : Nominal cooling capacity
-  - Section 3  : Evaporator secondary fluid
-  - Section 4  : Condenser secondary fluid
-  - Section 7  : Compressor metadata
-  - Section 8  : Swept volume
-  - Section 9  : Operating limits
-  - Section 11 : Nominal compressor map point
-
-Sections that usually stay the same:
-  - Section 5  : Cycle assumptions (superheat / subcooling)
-  - Section 6  : Initial KA values  ← solver recomputes these anyway
-  - Section 10 : Numerical solver settings
-  - Section 12 : Plotting style
-  - Section 13 : Parametric study range
-  - Section 14 : Reference case temperature
-  - Section 15 : High-PR analysis
-  - Section 16 : Output file name
+Only this file and ``compressor.py`` should normally be edited for a new
+student case. The active case below is Amirhossein Naeejnezhad's assigned
+project: data-center cooling, 50 kW nominal target, air-side evaporator,
+water-cooled condenser.
 """
 
-# ============================================================
-# >>>  ACTIVE PROJECT SETTINGS  <<<
-# ============================================================
-# Only ONE project block should be active at a time.
-# To switch projects: comment out the active block and
-# uncomment the one you want (or paste your own values).
-# ============================================================
+# =============================================================================
+# 1) Project identity and assignment
+# =============================================================================
+STUDENT_NAME = "Amirhossein Naeejnezhad"
+APPLICATION = "Cooling data center"
+ASSIGNED_ROOM_AIR_TEMP_C = 12.0          # [°C] assignment condition
+Q_NOMINAL_TARGET = 50.0e3                # [W] assignment target
 
-# ------------------------------------------------------------
-# PROJECT: Amirhossein Naeejnezhad
-# Application : Cooling data center
-# Nominal Q   : 50 kW
-# Evap side   : data-center return air cooled from 24 °C to 12 °C
-# Cond side   : water, 5 K temperature rise
-# Compressor  : Bitzer GSD60235VL_4 (ORBIT, R32)
-# Nominal point corrected using approach-temperature assumptions:
-#   air evaporator  : Tevap ≈ T_air,out - 10 K = 2 °C
-#   water condenser : Tcond ≈ 37.5 °C for 30 -> 35 °C water
-# ------------------------------------------------------------
-STUDENT_NAME        = "Amirhossein Naeejnezhad"
-APPLICATION         = "Cooling data center"
+# =============================================================================
+# 2) Refrigerant and compressor
+# =============================================================================
+REF = "R32"
+COMPRESSOR_MODEL = "GSD60235VL_4"
+COMPRESSOR_TYPE = "Single Compressor"
+COMPRESSOR_SERIES = "ORBIT"
+CAPACITY_CONTROL = "without"
 
-REF                 = "R32"
-Q_NOMINAL_TARGET    = 50.0e3          # [W]
+VDOT_SWEPT_50HZ_M3_H = 37.6              # [m³/h]
+VDOT_SWEPT_50HZ_M3_S = VDOT_SWEPT_50HZ_M3_H / 3600.0
 
-# Evaporator — air side
-# The assigned 12 °C room condition is interpreted as the cold supply air
-# delivered to the servers; the evaporator inlet is warmer return air.
-EVAP_SECONDARY      = "air"           # "air" or "water" or "brine"
-T_AIR_IN_C          = 24.0            # [°C]  secondary fluid inlet / return air
-T_AIR_OUT_C         = 12.0            # [°C]  secondary fluid outlet / supply air
+MAX_PRESSURE_LP_BAR = 34.2
+MAX_PRESSURE_HP_BAR = 45.0
+MAX_POWER_INPUT_KW = 24.0
 
-# Condenser — water side
-COND_SECONDARY      = "water"         # "air" or "water"
-T_WATER_RISE_K      = 5.0             # [K]   temperature rise across condenser
-
-COMPRESSOR_MODEL    = "GSD60235VL_4"
-COMPRESSOR_TYPE     = "Single Compressor"
-COMPRESSOR_SERIES   = "ORBIT"
-CAPACITY_CONTROL    = "without"
-
-VDOT_SWEPT_50HZ_M3_H = 37.6
-MAX_PRESSURE_LP_BAR   = 34.2
-MAX_PRESSURE_HP_BAR   = 45.0
-MAX_POWER_INPUT_KW    = 24.0
-
+# Manufacturer/check point used to validate the polynomial model.
+# The compressor is slightly larger than the 50 kW target because commercial
+# compressors are selected from discrete manufacturer models.
 nominal_map_point = {
-    "Tevap_C":       2.0,
-    "Tcond_C":       37.5,
-    "Qe_kW":         60.2,
-    "Pc_kW":         13.27,
-    "mdot_kg_h":     838.0,
+    "Tevap_C": 2.0,
+    "Tcond_C": 37.5,
+    "Qe_kW": 60.26,
+    "Pc_kW": 13.27,
+    "mdot_kg_h": 838.0,
     "discharge_T_C": 84.0,
-    "COP":           4.54,
+    "COP": 4.54,
 }
-# ------------------------------------------------------------
-# END Amirhossein Naeejnezhad
-# ------------------------------------------------------------
-# ------------------------------------------------------------
-# PROJECT: Lorenzin Filippo
-# Application : Process chiller
-# Nominal Q   : 120 kW
-# Evap side   : water cooled from 16 to 11 °C
-# Cond side   : air
-# ------------------------------------------------------------
-# STUDENT_NAME        = "Lorenzin Filippo"
-# APPLICATION         = "Process chiller"
 
-# REF                 = "R134a"
-# Q_NOMINAL_TARGET    = 120.0e3         # [W]
+# Conservative operating envelope used only to flag suspicious polynomial use.
+# It is not a replacement for the official manufacturer validity limits.
+MAP_CHECK_LIMITS = {
+    "Tevap_C_min": -10.0,
+    "Tevap_C_max": 15.0,
+    "Tcond_C_min": 25.0,
+    "Tcond_C_max": 65.0,
+}
 
-# EVAP_SECONDARY      = "water"
-# T_BRINE_IN_C        = 16.0            # water inlet  [°C]
-# T_BRINE_OUT_C       = 11.0            # water outlet [°C]
+# =============================================================================
+# 3) Secondary fluids and cycle assumptions
+# =============================================================================
+EVAP_SECONDARY = "air"                   # "air", "water", or "brine"
+COND_SECONDARY = "water"                 # "water" or "air"
 
-# COND_SECONDARY      = "air"
-# T_AIR_COND_RISE_K   = 5.0            # air temperature rise across condenser [K]
+# Data-center interpretation:
+# the assigned 12 °C room/air condition is treated as the cold supply-air
+# condition; a 24 °C return-air temperature is assumed to close the evaporator
+# energy balance and calculate the air mass flow rate.
+T_AIR_IN_C = 24.0                         # [°C] evaporator air inlet / return air
+T_AIR_OUT_C = ASSIGNED_ROOM_AIR_TEMP_C     # [°C] evaporator air outlet / supply air
+T_WATER_RISE_K = 5.0                       # [K] condenser-water temperature rise
 
-# COMPRESSOR_MODEL      = "8FE-60Y"
-# COMPRESSOR_TYPE       = "Single Compressor"
-# COMPRESSOR_SERIES     = "Standard"
-# CAPACITY_CONTROL      = "without"
+SUPERHEAT_K = 6.0                          # [K] compressor-suction superheat
+SUBCOOLING_K = 3.0                         # [K] condenser-outlet subcooling
 
-# VDOT_SWEPT_50HZ_M3_H  = 221.0        # from Technical Data tab
-# MAX_PRESSURE_LP_BAR   = 19.0         # from Technical Data tab
-# MAX_PRESSURE_HP_BAR   = 28.0         # from Technical Data tab
-# MAX_POWER_INPUT_KW    = 63.0         # from Technical Data tab
+CP_AIR_J_KG_K = 1005.0
+CP_WATER_J_KG_K = 4180.0
 
-# nominal_map_point = {
-#     "Tevap_C":        4.0,
-#     "Tcond_C":       45.0,
-#     "Qe_kW":        120.9,           # from Result tab
-#     "Pc_kW":         35.1,
-#     "mdot_kg_h":   2747.0,
-#     "discharge_T_C": 80.0,
-#     "COP":            3.44,
-# }
-
-# # Heat-sink sweep: ambient air temperature range
-# T_HEATSINK_RANGE_C = {
-#     "start": 25.0,
-#     "end":   40.0,
-#     "step":   2.0,
-# }
-# T_WATER_RANGE_C = T_HEATSINK_RANGE_C  # alias
-
-# ============================================================
-# >>>  OTHER PROJECT TEMPLATES  <<<
-# ============================================================
-# To activate one of these:
-#   1. Comment out the active block above.
-#   2. Uncomment the block you need.
-#   3. Fill in compressor data from the Bitzer / Copeland /
-#      Frascold selection software for your refrigerant.
-# ============================================================
-
-# # ------------------------------------------------------------
-# # PROJECT TEMPLATE — fill in your details
-# # ------------------------------------------------------------
-# STUDENT_NAME        = "Your Name"
-# APPLICATION         = "your application"
-#
-# REF                 = "R410A"         # e.g. R410A, R134a, R32, R290 …
-# Q_NOMINAL_TARGET    = 20.0e3          # [W]  nominal cooling capacity
-#
-# # Evaporator secondary fluid
-# EVAP_SECONDARY      = "air"           # "air" | "water" | "brine"
-# T_AIR_IN_C          = 24.0            # [°C]  if air-cooled evaporator
-# T_AIR_OUT_C         = 12.0            # [°C]  if air-cooled evaporator
-# # (for water/brine evaporator use T_BRINE_IN_C / T_BRINE_OUT_C below)
-# # T_BRINE_IN_C      = 18.0            # [°C]
-# # T_BRINE_OUT_C     = 12.0            # [°C]
-#
-# # Condenser secondary fluid
-# COND_SECONDARY      = "air"           # "air" | "water"
-# T_WATER_RISE_K      = 5.0             # [K]   (used for water-cooled condenser)
-#
-# # Compressor — from manufacturer selection software
-# COMPRESSOR_MODEL    = "XXXXX"
-# COMPRESSOR_TYPE     = "Single Compressor"
-# COMPRESSOR_SERIES   = "XXXXX"
-# CAPACITY_CONTROL    = "without"
-#
-# VDOT_SWEPT_50HZ_M3_H = 0.0           # [m³/h]  from datasheet
-# MAX_PRESSURE_LP_BAR   = 0.0           # [bar]
-# MAX_PRESSURE_HP_BAR   = 0.0           # [bar]
-# MAX_POWER_INPUT_KW    = 0.0           # [kW]
-#
-# nominal_map_point = {
-#     "Tevap_C":       0.0,             # [°C]  nominal evaporating SST
-#     "Tcond_C":       35.0,            # [°C]  nominal condensing SDT
-#     "Qe_kW":         0.0,             # [kW]  cooling capacity at nominal pt
-#     "Pc_kW":         0.0,             # [kW]  compressor power at nominal pt
-#     "mdot_kg_h":     0.0,             # [kg/h] refrigerant mass flow
-#     "discharge_T_C": 0.0,             # [°C]  discharge gas temperature
-#     "COP":           0.0,             # [-]   COP at nominal point
-# }
-# # ------------------------------------------------------------
-# # END template
-# # ------------------------------------------------------------
-
-
-# ============================================================
-# DERIVED CONSTANT  (do not edit)
-# ============================================================
-VDOT_SWEPT_50HZ_M3_S = VDOT_SWEPT_50HZ_M3_H / 3600.0   # [m³/s]
-
-
-# =========================
-# 5) Refrigeration cycle assumptions
-# =========================
-SUPERHEAT_K  = 6.0   # [K]  superheating at compressor suction
-SUBCOOLING_K = 3.0   # [K]  subcooling at condenser outlet
-# SUPERHEAT_K  = 16.0   # suction gas at 20°C with Tevap=4°C → 16 K
-# SUBCOOLING_K =  5.0
-
-
-# =========================
-# 5b) Heat exchanger approach assumptions used for nominal design
-# =========================
-# These values are rules of thumb for selecting nominal refrigerant-side
-# temperatures from the known secondary-fluid temperatures. The actual
-# off-design operating points are still solved with the LMTD model.
-APPROACH_COND_WATER_K = 5.0
+# =============================================================================
+# 4) Heat-exchanger design assumptions
+# =============================================================================
+APPROACH_EVAP_AIR_K = 10.0
 APPROACH_EVAP_WATER_K = 5.0
-APPROACH_COND_AIR_K   = 15.0
-APPROACH_EVAP_AIR_K   = 10.0
+APPROACH_COND_WATER_K = 5.0
+APPROACH_COND_AIR_K = 15.0
 
-# =========================
-# 6) Heat exchanger conductances (initial guesses)
-# These are overwritten by the design calculation in the solver.
-# =========================
-KA_EVAP_INITIAL = 7.5e3   # [W/K]
-KA_COND_INITIAL = 9.5e3   # [W/K]
+# Initial values are only fallbacks. The design step recomputes KA values from
+# the nominal point and then keeps them constant during the sweep.
+KA_EVAP_INITIAL = 7.5e3                    # [W/K]
+KA_COND_INITIAL = 9.5e3                    # [W/K]
 
-
-# =========================
-# 10) Numerical solver settings
-# =========================
+# =============================================================================
+# 5) Solver, sweep, plotting, and output
+# =============================================================================
 MAX_ITER = 100
-TOL      = 1e-4
-RELAX    = 0.45
+TOL = 1e-4
+RELAX = 0.45
 
+T_HEATSINK_RANGE_C = {
+    "start": 20.0,
+    "end": 40.0,
+    "step": 2.0,
+}
+T_WATER_RANGE_C = T_HEATSINK_RANGE_C       # backward-compatible alias
+REFERENCE_HEATSINK_TEMP_C = 30.0
+REFERENCE_WATER_TEMP_C = REFERENCE_HEATSINK_TEMP_C
 
-# =========================
-# 12) Plotting style
-# =========================
+HIGH_PR_ANALYSIS = {
+    "Tevap_fixed_C": nominal_map_point["Tevap_C"],
+    "Tcond_min_C": 30.0,
+    "Tcond_max_C": 70.0,
+    "num_points": 20,
+}
+
 PLOT_STYLE = {
-    "figure.dpi":      150,
-    "figure.figsize":  (7.5, 4.8),
-    "font.family":     "serif",
-    "font.size":       12,
-    "axes.titlesize":  14,
-    "axes.labelsize":  12,
-    "axes.linewidth":  1.2,
-    "axes.grid":       True,
-    "grid.linestyle":  "--",
-    "grid.alpha":      0.4,
+    "figure.dpi": 150,
+    "figure.figsize": (7.5, 4.8),
+    "font.family": "serif",
+    "font.size": 12,
+    "axes.titlesize": 14,
+    "axes.labelsize": 12,
+    "axes.linewidth": 1.2,
+    "axes.grid": True,
+    "grid.linestyle": "--",
+    "grid.alpha": 0.4,
     "lines.linewidth": 2.2,
     "lines.markersize": 6,
     "legend.fontsize": 10,
-    "legend.frameon":  False,
+    "legend.frameon": False,
     "xtick.direction": "in",
     "ytick.direction": "in",
     "xtick.major.size": 5,
     "ytick.major.size": 5,
 }
 
-
-# =========================
-# 13) Parametric study settings
-# Heat-sink temperature sweep
-# =========================
-T_HEATSINK_RANGE_C = {
-    "start": 20.0,
-    "end":   40.0,
-    "step":  2.0,
-}
-# Keep old name as alias so existing code still works
-T_WATER_RANGE_C = T_HEATSINK_RANGE_C
-
-
-# =========================
-# 14) Reference case (for detailed states output)
-# =========================
-REFERENCE_WATER_TEMP_C = 30.0
-
-
-# =========================
-# 15) High pressure-ratio study
-# =========================
-HIGH_PR_ANALYSIS = {
-    "Tevap_fixed_C": 2.0,
-    "Tcond_min_C":   30.0,
-    "Tcond_max_C":   70.0,
-    "num_points":    20,
-}
-
-
-# =========================
-# 16) Output settings
-# =========================
-OUTPUT_CSV_NAME = (
-    f"refrigeration_results_{REF}_{STUDENT_NAME.split()[-1]}.csv"
-)
+OUTPUT_CSV_NAME = f"refrigeration_results_{REF}_{STUDENT_NAME.split()[-1]}.csv"
